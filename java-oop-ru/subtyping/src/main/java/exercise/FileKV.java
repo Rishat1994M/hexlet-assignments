@@ -38,5 +38,6 @@ class FileKV implements KeyValueStorage {
         return data;
     }
 }
+}
 
 // END
