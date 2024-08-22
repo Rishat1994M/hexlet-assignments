@@ -1,13 +1,13 @@
 package exercise;
 
 // BEGIN
-class Cottage implements Home {
+public class Cottage implements Home {
     private double area;
     private int floorCount;
 
     Cottage(double area, int floorCount) {
-        this.area = area;
-        this.floorCount = floorCount;
+    this.area = area;
+    this.floorCount = floorCount;
     }
 
     public double getArea() {
@@ -15,19 +15,16 @@ class Cottage implements Home {
     }
 
     public String toString() {
-        return String.format("%d этажный коттедж площадью %s метров", floorCount, getArea());
+        return String.format("%s этажный коттедж площадью %d метров", floorCount, getArea());
     }
-
     public int compareTo(Home another) {
-        if (area == another.getArea()) {
+        if(area == another.getArea()) {
             return 0;
+        } else if(another.getArea() > area)  {
+            return -1;
+        } else {
+            return  1;
         }
-
-        if (area > another.getArea()) {
-            return 1;
-        }
-
-        return -1;
     }
 }
 // END
