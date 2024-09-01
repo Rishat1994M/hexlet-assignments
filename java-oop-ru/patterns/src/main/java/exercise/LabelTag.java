@@ -1,18 +1,19 @@
 package exercise;
 
 // BEGIN
-public class LabelTag implements TagInterface {
-    private String text;
-    private TagInterface childTag;
+class LabelTag implements TagInterface {
 
-    public LabelTag(String text, TagInterface childTag) {
+    private String text;
+    private TagInterface child;
+
+    LabelTag(String text, TagInterface child) {
         this.text = text;
-        this.childTag = childTag;
+        this.child = child;
     }
 
-    @Override
     public String render() {
-        return String.format("<label>%s%s</label>", text, childTag.render());
+        return "<label>" + text + child.render() + "</label>";
     }
 }
+
 // END
