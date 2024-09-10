@@ -2,73 +2,86 @@ package exercise;
 
 import java.lang.reflect.Field;
 // BEGIN
-import java.util.ArrayList;
 import java.util.List;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
-@Retention(RetentionPolicy.RUNTIME)
-public @interface NotNull {
-}
-public class Validator {
-    public static List<String> validate(Object obj) {
-        List<String> notValidFields = new ArrayList<>();
-        Field[] fields = obj.getClass().getDeclaredFields();
-        
-        for (Field field : fields) {
-            if (field.isAnnotationPresent(NotNull.class)) {
-                field.setAccessible(true);
+class Validator {
+    public static List<String> validate(Object instance) {
+        List<Field> fields = List.of(instance.getClass().getDeclaredFields());
+        return fields.stream()
+            .filter(field -> field.isAnnotationPresent(NotNull.class))
+            .filter(field -> {
+                Object value;
                 try {
-                    if (field.get(obj) == null) {
-                        notValidFields.add(field.getName());
-                    }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    field.setAccessible(true);
+                    value = field.get(instance);
+                    field.setAccessible(false);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-            }
-        }
-        return notValidFields;
+                return value == null;
+            })
+            .map(Field::getName)
+            .collect(Collectors.toList());
     }
-    public static Map<String, List<String>> advancedValidate(Object obj) {
-        Map<String, List<String>> notValidFields = new HashMap<>();
-        Field[] fields = obj.getClass().getDeclaredFields();
 
-        for (Field field : fields) {
+    public static Map<String, List<String>> advancedValidate(Object instance) {
+        List<Field> fields = List.of(instance.getClass().getDeclaredFields());
+        Map<String, List<String>> validationErrors = new HashMap<>();
+        fields.stream()
+            .filter(field -> field.isAnnotationPresent(NotNull.class) || field.isAnnotationPresent(MinLength.class))
+            .forEach(field -> {
+                String fieldName = field.getName();
+                List<String> errors = getErrorsForField(field, instance);
+                if (!errors.isEmpty()) {
+                    validationErrors.put(fieldName, errors);
+                }
+            });
+        return validationErrors;
+    }
+
+    public static List<String> getErrorsForField(Field field, Object instance) {
+        List<String> errors = new ArrayList<>();
+        String value;
+
+        try {
             field.setAccessible(true);
-            List<String> errors = new ArrayList<>();
-
-            if (field.isAnnotationPresent(NotNull.class)) {
-                try {
-                    if (field.get(obj) == null) {
-                        errors.add("can not be null");
-                    }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (field.isAnnotationPresent(MinLength.class)) {
-                MinLength minLengthAnnotation = field.getAnnotation(MinLength.class);
-                int minLength = minLengthAnnotation.minLength();
-                try {
-                    String value = (String) field.get(obj);
-                    if (value != null && value.length() < minLength) {
-                        errors.add("length less than " + minLength);
-                    }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (!errors.isEmpty()) {
-                notValidFields.put(field.getName(), errors);
-            }
+            value = (String) field.get(instance);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
-        return notValidFields;
+        if (field.isAnnotationPresent(NotNull.class) && value == null) {
+            errors.add("can not be null");
+        }
+
+        if (field.isAnnotationPresent(MinLength.class)) {
+            int minLength = field.getAnnotation(MinLength.class).minLength();
+            if (value == null || value.length() < minLength) {
+                errors.add("length less than " + minLength);
+            }
+        }
+        return errors;
+    }
+@Test
+    void testAdvancedValidate() {
+        Address address1 = new Address("Russia", "Ufa", "Lenina", "54", null);
+        Map<String, List<String>> result1 = Validator.advancedValidate(address1);
+        Map<String, List<String>> expected1 = Map.of();
+        assertThat(result1).isEqualTo(expected1);
+
+        Address address2 = new Address("Ru", "Moscow", null, "54", "10");
+        Map<String, List<String>> result2 = Validator.advancedValidate(address2);
+        Map<String, List<String>> expected2 = Map.of(
+            "country", List.of("length less than 3"),
+            "street", List.of("can not be null")
+        );
+        assertThat(result2).isEqualTo(expected2);
     }
 }
-
 
 // END
 
