@@ -42,6 +42,6 @@ class ValidationTest {
             "street", List.of("can not be null")
         );
         assertThat(result2).isEqualTo(expected2);
-    }
+        }
     // END
 }
